@@ -653,8 +653,61 @@
   line-height: 1.45;
 }
 
+.download-toast {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(360px, calc(100vw - 40px));
+  padding: 13px 15px;
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: rgba(0, 0, 0, 0.08) 0 12px 30px;
+  backdrop-filter: blur(16px);
+  animation: toast-in 220ms ease-out;
+}
+
+.download-toast svg {
+  flex: 0 0 auto;
+  color: var(--success-text);
+}
+
+.download-toast strong,
+.download-toast span {
+  display: block;
+}
+
+.download-toast strong {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.download-toast span {
+  margin-top: 1px;
+  color: var(--steel);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 .spin {
   animation: spin 1s linear infinite;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes spin {
@@ -768,5 +821,12 @@
 
   .download-strip .button {
     width: 100%;
+  }
+
+  .download-toast {
+    right: 20px;
+    bottom: 20px;
+    left: 20px;
+    max-width: none;
   }
 }

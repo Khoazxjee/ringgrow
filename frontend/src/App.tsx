@@ -68,6 +68,7 @@ function App() {
   const [isDragging, setIsDragging] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [downloadToast, setDownloadToast] = useState(false)
   const [result, setResult] = useState<EnhanceResult | null>(null)
 
   useEffect(() => {
@@ -77,6 +78,15 @@ function App() {
       }
     }
   }, [beforeUrl])
+
+  useEffect(() => {
+    if (!downloadToast) {
+      return
+    }
+
+    const timeout = window.setTimeout(() => setDownloadToast(false), 2600)
+    return () => window.clearTimeout(timeout)
+  }, [downloadToast])
 
   const selectedName = useMemo(() => file?.name ?? 'ring-before.jpg', [file])
   const endpoint = `${API_BASE.replace(/\/$/, '')}/enhance`
@@ -168,6 +178,7 @@ function App() {
     anchor.href = afterUrl
     anchor.download = `ringglow-studio-${Date.now()}.${extension}`
     anchor.click()
+    setDownloadToast(true)
   }
 
   return (
@@ -354,6 +365,16 @@ function App() {
           </section>
         </div>
       </main>
+
+      {downloadToast ? (
+        <div className="download-toast" role="status" aria-live="polite">
+          <CheckCircle2 size={18} />
+          <div>
+            <strong>Đã tải ảnh</strong>
+            <span>File kết quả đã được lưu về máy.</span>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
