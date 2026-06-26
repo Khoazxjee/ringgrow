@@ -31,6 +31,7 @@ type OutputFormat = 'png' | 'jpeg' | 'webp'
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '/api'
 const SAMPLE_BEFORE = '/examples/ring-before.jpg'
+const GOLD_REFERENCE = '/examples/gold-reference.jpg'
 
 const qualityOptions: Array<{ label: string; value: Quality }> = [
   { label: 'Cao', value: 'high' },
@@ -242,6 +243,15 @@ function App() {
                 accept="image/jpeg,image/png,image/webp"
                 onChange={onInputChange}
               />
+            </div>
+
+            <div className="reference-card">
+              <div>
+                <span>Tông mục tiêu</span>
+                <strong>Vàng studio sáng tự nhiên</strong>
+                <small>Champagne highlight, honey-gold midtone</small>
+              </div>
+              <img src={GOLD_REFERENCE} alt="Reference gold tone" />
             </div>
 
             <div className="settings-stack">

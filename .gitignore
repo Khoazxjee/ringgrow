@@ -1,5 +1,6 @@
 backend/.env
 backend/*.exe
+backend/*.exe~
 backend/*.log
 backend/*.log.err
 frontend/node_modules/
