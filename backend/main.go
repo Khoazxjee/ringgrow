@@ -17,7 +17,7 @@ import (
 
 const (
 	maxImageBytes = 50 << 20
-	defaultPrompt = `Edit the provided product photo of rings for premium jewelry ecommerce. Preserve the exact ring geometry, camera angle, crop, composition, scale, engravings, gemstone count and placement, decorative rectangular panels, edges, inner contours, shadows, and all ornamental details. Only improve the metal rendering: make the rings look like richer realistic yellow gold with a deeper warm tone, physically plausible polished reflections, clean highlights, and professional studio lighting. Keep a white or neutral studio background. Do not add, remove, reshape, resize, repaint, blur, simplify, or invent any ring details.`
+	defaultPrompt = `Edit the provided product photo of rings for premium jewelry ecommerce. Preserve the exact ring geometry, camera angle, crop, composition, scale, engravings, gemstone count and placement, decorative rectangular panels, edges, inner contours, shadows, and all ornamental details. Keep the rings crisp and sharp like a clean studio product photo. Only improve the metal rendering: make the rings look like natural realistic 18K yellow gold under soft professional studio lighting, with balanced warm highlights, accurate polished reflections, and a believable jewelry-photo finish. Avoid overly dark, orange, oversaturated, plastic, CGI, or fake-looking gold. Keep a white or neutral studio background. Do not add, remove, reshape, resize, repaint, blur, simplify, or invent any ring details.`
 )
 
 type app struct {
