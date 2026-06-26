@@ -4,13 +4,11 @@ import {
   CheckCircle2,
   Download,
   Gem,
-  Image as ImageIcon,
   LoaderCircle,
   RotateCcw,
   Settings2,
   ShieldCheck,
   Sparkles,
-  UploadCloud,
   WandSparkles,
 } from 'lucide-react'
 import './App.css'
@@ -30,7 +28,6 @@ type Size = 'auto' | '1536x1024' | '1024x1024' | '1024x1536'
 type OutputFormat = 'png' | 'jpeg' | 'webp'
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '/api'
-const SAMPLE_BEFORE = '/examples/ring-before.jpg'
 const GOLD_REFERENCE = '/examples/gold-reference.jpg'
 
 const qualityOptions: Array<{ label: string; value: Quality }> = [
@@ -60,7 +57,7 @@ const highlights = [
 function App() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
-  const [beforeUrl, setBeforeUrl] = useState(SAMPLE_BEFORE)
+  const [beforeUrl, setBeforeUrl] = useState('')
   const [afterUrl, setAfterUrl] = useState('')
   const [quality, setQuality] = useState<Quality>('high')
   const [size, setSize] = useState<Size>('auto')
@@ -88,9 +85,9 @@ function App() {
     return () => window.clearTimeout(timeout)
   }, [downloadToast])
 
-  const selectedName = useMemo(() => file?.name ?? 'ring-before.jpg', [file])
+  const selectedName = useMemo(() => file?.name ?? 'Chưa chọn ảnh', [file])
   const endpoint = `${API_BASE.replace(/\/$/, '')}/enhance`
-  const canGenerate = !isLoading && Boolean(beforeUrl)
+  const canGenerate = !isLoading && Boolean(file && beforeUrl)
 
   function chooseFile(nextFile: File) {
     if (!nextFile.type.startsWith('image/')) {
@@ -113,7 +110,7 @@ function App() {
     event.currentTarget.value = ''
   }
 
-  function onDrop(event: DragEvent<HTMLDivElement>) {
+  function onDrop(event: DragEvent<HTMLButtonElement>) {
     event.preventDefault()
     setIsDragging(false)
     const nextFile = event.dataTransfer.files?.[0]
@@ -122,21 +119,19 @@ function App() {
     }
   }
 
-  async function sampleAsFile() {
-    const response = await fetch(SAMPLE_BEFORE)
-    const blob = await response.blob()
-    return new File([blob], 'ring-before.jpg', { type: blob.type || 'image/jpeg' })
-  }
-
   async function enhanceImage() {
+    if (!file) {
+      setError('Vui lòng upload file ảnh.')
+      return
+    }
+
     setIsLoading(true)
     setError('')
     setResult(null)
 
     try {
-      const imageFile = file ?? (await sampleAsFile())
       const formData = new FormData()
-      formData.append('image', imageFile)
+      formData.append('image', file)
       formData.append('quality', quality)
       formData.append('size', size)
       formData.append('output_format', outputFormat)
@@ -161,9 +156,9 @@ function App() {
     }
   }
 
-  function resetToSample() {
+  function resetImage() {
     setFile(null)
-    setBeforeUrl(SAMPLE_BEFORE)
+    setBeforeUrl('')
     setAfterUrl('')
     setResult(null)
     setError('')
@@ -222,38 +217,8 @@ function App() {
               <Settings2 size={18} strokeWidth={1.8} />
               <div>
                 <h2>Thiết lập</h2>
-                <p>Upload ảnh và chọn cấu hình xuất.</p>
+                <p>Chọn cấu hình xuất cho ảnh sau xử lý.</p>
               </div>
-            </div>
-
-            <div
-              className={`dropzone ${isDragging ? 'is-dragging' : ''}`}
-              onDragOver={(event) => {
-                event.preventDefault()
-                setIsDragging(true)
-              }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={onDrop}
-            >
-              <div className="upload-icon" aria-hidden="true">
-                <UploadCloud size={24} strokeWidth={1.8} />
-              </div>
-              <div className="upload-copy">
-                <span>Ảnh đầu vào</span>
-                <strong>{selectedName}</strong>
-                <small>JPG, PNG, WEBP dưới 50MB</small>
-              </div>
-              <button className="button secondary" type="button" onClick={() => fileInputRef.current?.click()}>
-                <ImageIcon size={17} />
-                Chọn ảnh
-              </button>
-              <input
-                ref={fileInputRef}
-                className="file-input"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={onInputChange}
-              />
             </div>
 
             <div className="reference-card">
@@ -299,7 +264,7 @@ function App() {
                 {isLoading ? <LoaderCircle className="spin" size={18} /> : <WandSparkles size={18} />}
                 {isLoading ? 'Đang xử lý' : 'Tạo ảnh vàng'}
               </button>
-              <button className="button tertiary icon-only" type="button" onClick={resetToSample} aria-label="Reset sample">
+              <button className="button tertiary icon-only" type="button" onClick={resetImage} aria-label="Xóa ảnh">
                 <RotateCcw size={18} />
               </button>
             </div>
@@ -311,57 +276,88 @@ function App() {
                 <span className="eyebrow">Preview</span>
                 <h2>So sánh trước và sau</h2>
               </div>
-              <div className="result-meta">
-                <span>{result?.quality ?? quality}</span>
-                <span>{result?.size ?? size}</span>
-                <span>{result?.outputFormat ?? outputFormat}</span>
-              </div>
+              {beforeUrl ? (
+                <div className="result-meta">
+                  <span>{result?.quality ?? quality}</span>
+                  <span>{result?.size ?? size}</span>
+                  <span>{result?.outputFormat ?? outputFormat}</span>
+                </div>
+              ) : null}
             </div>
 
-            <div className="comparison">
-              <ImageCard label="Before" title="Ảnh gốc" badge={selectedName}>
-                <img src={beforeUrl} alt="Original ring" />
-              </ImageCard>
+            <input
+              ref={fileInputRef}
+              className="file-input"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={onInputChange}
+            />
 
-              <ImageCard
-                className="after-card"
-                label="After"
-                title="Studio gold"
-                badge={
-                  result ? (
-                    <>
-                      <CheckCircle2 size={14} />
-                      {result.model}
-                    </>
-                  ) : (
-                    'Ready'
-                  )
-                }
+            {!beforeUrl ? (
+              <button
+                className={`upload-only-card ${isDragging ? 'is-dragging' : ''}`}
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={(event) => {
+                  event.preventDefault()
+                  setIsDragging(true)
+                }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={onDrop}
               >
-                {afterUrl ? (
-                  <img src={afterUrl} alt="Enhanced gold ring" />
-                ) : (
-                  <div className="empty-state">
-                    <span className="empty-icon" aria-hidden="true">
-                      {isLoading ? <LoaderCircle className="spin" size={32} /> : <Sparkles size={32} />}
-                    </span>
-                    <strong>{isLoading ? 'Đang dựng ánh sáng studio' : 'Kết quả sẽ hiện ở đây'}</strong>
-                    <span>{isLoading ? 'Backend đang giữ nguyên chi tiết nhẫn.' : 'Bấm tạo ảnh để xem bản vàng tự nhiên hơn.'}</span>
-                  </div>
-                )}
-              </ImageCard>
-            </div>
-
-            <div className="download-strip">
-              <div>
-                <strong>{afterUrl ? 'Ảnh đã sẵn sàng' : 'Chưa có ảnh sau xử lý'}</strong>
-                <span>{afterUrl ? 'Bạn có thể tải kết quả về máy.' : 'Kết quả xuất ra sẽ dùng thiết lập bên trái.'}</span>
-              </div>
-              <button className="button tertiary compact" type="button" disabled={!afterUrl} onClick={downloadResult}>
-                <Download size={16} />
-                Tải ảnh
+                Upload file ảnh
               </button>
-            </div>
+            ) : (
+              <>
+                <div className="comparison">
+                  <ImageCard label="Before" title="Ảnh gốc" badge={selectedName}>
+                    <img src={beforeUrl} alt="Original ring" />
+                    <button className="change-image-button" type="button" onClick={() => fileInputRef.current?.click()}>
+                      Đổi ảnh
+                    </button>
+                  </ImageCard>
+
+                  <ImageCard
+                    className="after-card"
+                    label="After"
+                    title="Studio gold"
+                    badge={
+                      result ? (
+                        <>
+                          <CheckCircle2 size={14} />
+                          {result.model}
+                        </>
+                      ) : (
+                        'Ready'
+                      )
+                    }
+                  >
+                    {afterUrl ? (
+                      <img src={afterUrl} alt="Enhanced gold ring" />
+                    ) : (
+                      <div className="empty-state">
+                        <span className="empty-icon" aria-hidden="true">
+                          {isLoading ? <LoaderCircle className="spin" size={32} /> : <Sparkles size={32} />}
+                        </span>
+                        <strong>{isLoading ? 'Đang dựng ánh sáng studio' : 'Kết quả sẽ hiện ở đây'}</strong>
+                        <span>{isLoading ? 'Backend đang giữ nguyên chi tiết nhẫn.' : 'Bấm tạo ảnh để xem bản vàng tự nhiên hơn.'}</span>
+                      </div>
+                    )}
+                  </ImageCard>
+                </div>
+
+                <div className="download-strip">
+                  <div>
+                    <strong>{afterUrl ? 'Ảnh đã sẵn sàng' : 'Chưa có ảnh sau xử lý'}</strong>
+                    <span>{afterUrl ? 'Bạn có thể tải kết quả về máy.' : 'Kết quả xuất ra sẽ dùng thiết lập bên trái.'}</span>
+                  </div>
+                  <button className="button tertiary compact" type="button" disabled={!afterUrl} onClick={downloadResult}>
+                    <Download size={16} />
+                    Tải ảnh
+                  </button>
+                </div>
+              </>
+            )}
           </section>
         </div>
       </main>
