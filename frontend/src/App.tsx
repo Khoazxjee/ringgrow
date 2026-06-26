@@ -293,59 +293,62 @@ function App() {
               onChange={onInputChange}
             />
 
-            {!beforeUrl ? (
-              <button
-                className={`upload-only-card ${isDragging ? 'is-dragging' : ''}`}
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                onDragOver={(event) => {
-                  event.preventDefault()
-                  setIsDragging(true)
-                }}
-                onDragLeave={() => setIsDragging(false)}
-                onDrop={onDrop}
-              >
-                Upload file ảnh
-              </button>
-            ) : (
-              <>
-                <div className="comparison">
-                  <ImageCard label="Before" title="Ảnh gốc" badge={selectedName}>
+            <div className="comparison">
+              <ImageCard label="Before" title="Ảnh gốc" badge={beforeUrl ? selectedName : 'Upload'}>
+                {beforeUrl ? (
+                  <>
                     <img src={beforeUrl} alt="Original ring" />
                     <button className="change-image-button" type="button" onClick={() => fileInputRef.current?.click()}>
                       Đổi ảnh
                     </button>
-                  </ImageCard>
-
-                  <ImageCard
-                    className="after-card"
-                    label="After"
-                    title="Studio gold"
-                    badge={
-                      result ? (
-                        <>
-                          <CheckCircle2 size={14} />
-                          {result.model}
-                        </>
-                      ) : (
-                        'Ready'
-                      )
-                    }
+                  </>
+                ) : (
+                  <button
+                    className={`image-upload-dropzone ${isDragging ? 'is-dragging' : ''}`}
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragOver={(event) => {
+                      event.preventDefault()
+                      setIsDragging(true)
+                    }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={onDrop}
                   >
-                    {afterUrl ? (
-                      <img src={afterUrl} alt="Enhanced gold ring" />
-                    ) : (
-                      <div className="empty-state">
-                        <span className="empty-icon" aria-hidden="true">
-                          {isLoading ? <LoaderCircle className="spin" size={32} /> : <Sparkles size={32} />}
-                        </span>
-                        <strong>{isLoading ? 'Đang dựng ánh sáng studio' : 'Kết quả sẽ hiện ở đây'}</strong>
-                        <span>{isLoading ? 'Backend đang giữ nguyên chi tiết nhẫn.' : 'Bấm tạo ảnh để xem bản vàng tự nhiên hơn.'}</span>
-                      </div>
-                    )}
-                  </ImageCard>
-                </div>
+                    Upload file ảnh
+                  </button>
+                )}
+              </ImageCard>
 
+              <ImageCard
+                className="after-card"
+                label="After"
+                title="Studio gold"
+                badge={
+                  result ? (
+                    <>
+                      <CheckCircle2 size={14} />
+                      {result.model}
+                    </>
+                  ) : (
+                    'Ready'
+                  )
+                }
+              >
+                {afterUrl ? (
+                  <img src={afterUrl} alt="Enhanced gold ring" />
+                ) : (
+                  <div className="empty-state">
+                    <span className="empty-icon" aria-hidden="true">
+                      {isLoading ? <LoaderCircle className="spin" size={32} /> : <Sparkles size={32} />}
+                    </span>
+                    <strong>{isLoading ? 'Đang dựng ánh sáng studio' : 'Kết quả sẽ hiện ở đây'}</strong>
+                    <span>{isLoading ? 'Backend đang giữ nguyên chi tiết nhẫn.' : 'Bấm tạo ảnh để xem bản vàng tự nhiên hơn.'}</span>
+                  </div>
+                )}
+              </ImageCard>
+            </div>
+
+            {beforeUrl ? (
                 <div className="download-strip">
                   <div>
                     <strong>{afterUrl ? 'Ảnh đã sẵn sàng' : 'Chưa có ảnh sau xử lý'}</strong>
@@ -356,8 +359,7 @@ function App() {
                     Tải ảnh
                   </button>
                 </div>
-              </>
-            )}
+            ) : null}
           </section>
         </div>
       </main>

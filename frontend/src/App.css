@@ -498,31 +498,6 @@
   line-height: 1.2;
 }
 
-.upload-only-card {
-  display: grid;
-  width: 100%;
-  min-height: 520px;
-  place-items: center;
-  border: 1px dashed #cfd5dd;
-  border-radius: 16px;
-  color: var(--ink);
-  background: var(--canvas);
-  font: inherit;
-  font-size: 18px;
-  font-weight: 700;
-  cursor: pointer;
-  transition:
-    background 180ms ease,
-    border-color 180ms ease,
-    color 180ms ease;
-}
-
-.upload-only-card.is-dragging {
-  border-color: var(--brand-blue-deep);
-  color: var(--brand-blue-deep);
-  background: #eef5ff;
-}
-
 .result-meta {
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -618,6 +593,28 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+.image-upload-dropzone {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  border: 0;
+  color: var(--ink);
+  background: transparent;
+  font: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 180ms ease,
+    color 180ms ease;
+}
+
+.image-upload-dropzone.is-dragging {
+  color: var(--brand-blue-deep);
+  background: #eef5ff;
 }
 
 .change-image-button {
@@ -858,10 +855,6 @@
 
   .image-frame {
     height: 310px;
-    min-height: 310px;
-  }
-
-  .upload-only-card {
     min-height: 310px;
   }
 
