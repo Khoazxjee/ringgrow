@@ -1,0 +1,9 @@
+backend/.env
+backend/*.exe
+backend/*.log
+backend/*.log.err
+frontend/node_modules/
+frontend/dist/
+.tools/
+.tmp-*.json
+*.log
