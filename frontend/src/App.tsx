@@ -1,10 +1,14 @@
-import { type ChangeEvent, type DragEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { type ChangeEvent, type DragEvent, type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  Camera,
   CheckCircle2,
   Download,
+  Gem,
   Image as ImageIcon,
   LoaderCircle,
   RotateCcw,
+  Settings2,
+  ShieldCheck,
   Sparkles,
   UploadCloud,
   WandSparkles,
@@ -29,21 +33,27 @@ const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '/
 const SAMPLE_BEFORE = '/examples/ring-before.jpg'
 
 const qualityOptions: Array<{ label: string; value: Quality }> = [
-  { label: 'High', value: 'high' },
-  { label: 'Medium', value: 'medium' },
-  { label: 'Auto', value: 'auto' },
+  { label: 'Cao', value: 'high' },
+  { label: 'Vừa', value: 'medium' },
+  { label: 'Tự động', value: 'auto' },
 ]
 
 const sizeOptions: Array<{ label: string; value: Size }> = [
-  { label: 'Auto', value: 'auto' },
-  { label: 'Wide', value: '1536x1024' },
-  { label: 'Square', value: '1024x1024' },
+  { label: 'Tự động', value: 'auto' },
+  { label: 'Ngang', value: '1536x1024' },
+  { label: 'Vuông', value: '1024x1024' },
 ]
 
 const formatOptions: Array<{ label: string; value: OutputFormat }> = [
   { label: 'PNG', value: 'png' },
   { label: 'JPEG', value: 'jpeg' },
   { label: 'WEBP', value: 'webp' },
+]
+
+const highlights = [
+  { icon: ShieldCheck, title: 'Giữ chi tiết', text: 'Hoạ tiết và đá không đổi' },
+  { icon: Gem, title: 'Vàng tự nhiên', text: 'Tông 18K cân bằng' },
+  { icon: Camera, title: 'Studio light', text: 'Sạch, nét, không giả' },
 ]
 
 function App() {
@@ -162,173 +172,243 @@ function App() {
   return (
     <div className="app-shell">
       <header className="top-region">
-        <div className="promo-banner">
-          <span>RingGlow Studio</span>
-          <span>GPT Image 2 edit pipeline</span>
-        </div>
         <nav className="top-nav" aria-label="Primary">
           <div className="brand">
-            <span className="brand-dot" aria-hidden="true" />
+            <span className="brand-mark" aria-hidden="true" />
             <span>RingGlow</span>
           </div>
-          <div className="nav-actions">
-            <span className="badge beta">Studio</span>
-            <span className="badge success">Preserve detail</span>
+          <div className="nav-actions" aria-label="Pipeline status">
+            <span className="status-pill muted">Studio retouch</span>
+            <span className="status-pill">gpt-image-2</span>
           </div>
         </nav>
       </header>
 
-      <main className="workspace">
-        <section className="control-panel" aria-label="Image controls">
-          <div className="panel-heading">
-            <span className="badge new">Gold edit</span>
-            <h1>Nhẫn vàng chuẩn studio</h1>
-            <p>Giữ nguyên hoạ tiết, hoa văn, đá và hình dáng.</p>
+      <main className="studio-page">
+        <section className="studio-hero" aria-labelledby="studio-title">
+          <div>
+            <span className="eyebrow">Jewelry AI Studio</span>
+            <h1 id="studio-title">Làm màu vàng tự nhiên hơn, ảnh nhẫn vẫn sắc nét.</h1>
+            <p>Biến ảnh nhẫn đầu vào thành ảnh sản phẩm sáng sạch, đúng cảm giác chụp trong studio.</p>
           </div>
-
-          <div
-            className={`dropzone ${isDragging ? 'is-dragging' : ''}`}
-            onDragOver={(event) => {
-              event.preventDefault()
-              setIsDragging(true)
-            }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={onDrop}
-          >
-            <UploadCloud size={24} strokeWidth={1.8} />
-            <div>
-              <strong>{selectedName}</strong>
-              <span>JPG, PNG, WEBP dưới 50MB</span>
-            </div>
-            <button className="button secondary" type="button" onClick={() => fileInputRef.current?.click()}>
-              <ImageIcon size={17} />
-              Chọn ảnh
-            </button>
-            <input
-              ref={fileInputRef}
-              className="file-input"
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={onInputChange}
-            />
-          </div>
-
-          <div className="control-group">
-            <div className="control-label">Quality</div>
-            <div className="segmented" role="group" aria-label="Quality">
-              {qualityOptions.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={quality === option.value ? 'active' : ''}
-                  onClick={() => setQuality(option.value)}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="control-group">
-            <div className="control-label">Size</div>
-            <div className="segmented" role="group" aria-label="Size">
-              {sizeOptions.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={size === option.value ? 'active' : ''}
-                  onClick={() => setSize(option.value)}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="control-group">
-            <div className="control-label">Format</div>
-            <div className="segmented" role="group" aria-label="Format">
-              {formatOptions.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={outputFormat === option.value ? 'active' : ''}
-                  onClick={() => setOutputFormat(option.value)}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {error ? <div className="error-message">{error}</div> : null}
-
-          <div className="button-row">
-            <button className="button primary" type="button" disabled={!canGenerate} onClick={enhanceImage}>
-              {isLoading ? <LoaderCircle className="spin" size={18} /> : <WandSparkles size={18} />}
-              {isLoading ? 'Đang xử lý' : 'Tạo ảnh vàng'}
-            </button>
-            <button className="button tertiary icon-only" type="button" onClick={resetToSample} aria-label="Reset sample">
-              <RotateCcw size={18} />
-            </button>
+          <div className="highlight-row" aria-label="Edit guarantees">
+            {highlights.map((item) => (
+              <div className="highlight-item" key={item.title}>
+                <item.icon size={18} strokeWidth={1.8} />
+                <div>
+                  <strong>{item.title}</strong>
+                  <span>{item.text}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
 
-        <section className="comparison" aria-label="Before and after">
-          <article className="image-card">
-            <div className="card-heading">
+        <div className="studio-grid">
+          <aside className="control-panel" aria-label="Image controls">
+            <div className="panel-title">
+              <Settings2 size={18} strokeWidth={1.8} />
               <div>
-                <span className="kicker">Before</span>
-                <h2>Ảnh gốc</h2>
+                <h2>Thiết lập</h2>
+                <p>Upload ảnh và chọn cấu hình xuất.</p>
               </div>
-              <span className="file-pill">{selectedName}</span>
             </div>
-            <div className="image-frame">
-              <img src={beforeUrl} alt="Original ring" />
-            </div>
-          </article>
 
-          <article className="image-card after-card">
-            <div className="card-heading">
+            <div
+              className={`dropzone ${isDragging ? 'is-dragging' : ''}`}
+              onDragOver={(event) => {
+                event.preventDefault()
+                setIsDragging(true)
+              }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={onDrop}
+            >
+              <div className="upload-icon" aria-hidden="true">
+                <UploadCloud size={24} strokeWidth={1.8} />
+              </div>
+              <div className="upload-copy">
+                <span>Ảnh đầu vào</span>
+                <strong>{selectedName}</strong>
+                <small>JPG, PNG, WEBP dưới 50MB</small>
+              </div>
+              <button className="button secondary" type="button" onClick={() => fileInputRef.current?.click()}>
+                <ImageIcon size={17} />
+                Chọn ảnh
+              </button>
+              <input
+                ref={fileInputRef}
+                className="file-input"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={onInputChange}
+              />
+            </div>
+
+            <div className="settings-stack">
+              <ControlGroup
+                title="Chất lượng"
+                note="Nên dùng Cao"
+                ariaLabel="Quality"
+                options={qualityOptions}
+                value={quality}
+                onChange={setQuality}
+              />
+              <ControlGroup
+                title="Khung ảnh"
+                note="Auto cho ảnh upload"
+                ariaLabel="Size"
+                options={sizeOptions}
+                value={size}
+                onChange={setSize}
+              />
+              <ControlGroup
+                title="Định dạng"
+                note="PNG giữ chi tiết tốt"
+                ariaLabel="Format"
+                options={formatOptions}
+                value={outputFormat}
+                onChange={setOutputFormat}
+              />
+            </div>
+
+            {error ? <div className="error-message">{error}</div> : null}
+
+            <div className="action-bar">
+              <button className="button primary" type="button" disabled={!canGenerate} onClick={enhanceImage}>
+                {isLoading ? <LoaderCircle className="spin" size={18} /> : <WandSparkles size={18} />}
+                {isLoading ? 'Đang xử lý' : 'Tạo ảnh vàng'}
+              </button>
+              <button className="button tertiary icon-only" type="button" onClick={resetToSample} aria-label="Reset sample">
+                <RotateCcw size={18} />
+              </button>
+            </div>
+          </aside>
+
+          <section className="preview-area" aria-label="Before and after">
+            <div className="preview-heading">
               <div>
-                <span className="kicker">After</span>
-                <h2>Studio gold</h2>
+                <span className="eyebrow">Preview</span>
+                <h2>So sánh trước và sau</h2>
               </div>
-              {result ? (
-                <span className="file-pill ready">
-                  <CheckCircle2 size={14} />
-                  {result.model}
-                </span>
-              ) : (
-                <span className="file-pill">Ready</span>
-              )}
+              <div className="result-meta">
+                <span>{result?.quality ?? quality}</span>
+                <span>{result?.size ?? size}</span>
+                <span>{result?.outputFormat ?? outputFormat}</span>
+              </div>
             </div>
 
-            <div className="image-frame">
-              {afterUrl ? (
-                <img src={afterUrl} alt="Enhanced gold ring" />
-              ) : (
-                <div className="empty-state">
-                  {isLoading ? <LoaderCircle className="spin" size={34} /> : <Sparkles size={34} />}
-                  <strong>{isLoading ? 'Đang render ánh sáng studio' : 'Ảnh sau xử lý'}</strong>
-                  <span>{isLoading ? 'Giữ nguyên chi tiết nhẫn' : 'Kết quả GPT Image 2 sẽ xuất hiện ở đây'}</span>
-                </div>
-              )}
+            <div className="comparison">
+              <ImageCard label="Before" title="Ảnh gốc" badge={selectedName}>
+                <img src={beforeUrl} alt="Original ring" />
+              </ImageCard>
+
+              <ImageCard
+                className="after-card"
+                label="After"
+                title="Studio gold"
+                badge={
+                  result ? (
+                    <>
+                      <CheckCircle2 size={14} />
+                      {result.model}
+                    </>
+                  ) : (
+                    'Ready'
+                  )
+                }
+              >
+                {afterUrl ? (
+                  <img src={afterUrl} alt="Enhanced gold ring" />
+                ) : (
+                  <div className="empty-state">
+                    <span className="empty-icon" aria-hidden="true">
+                      {isLoading ? <LoaderCircle className="spin" size={32} /> : <Sparkles size={32} />}
+                    </span>
+                    <strong>{isLoading ? 'Đang dựng ánh sáng studio' : 'Kết quả sẽ hiện ở đây'}</strong>
+                    <span>{isLoading ? 'Backend đang giữ nguyên chi tiết nhẫn.' : 'Bấm tạo ảnh để xem bản vàng tự nhiên hơn.'}</span>
+                  </div>
+                )}
+              </ImageCard>
             </div>
 
-            <div className="result-bar">
-              <span>{result?.quality ?? quality}</span>
-              <span>{result?.size ?? size}</span>
-              <span>{result?.outputFormat ?? outputFormat}</span>
+            <div className="download-strip">
+              <div>
+                <strong>{afterUrl ? 'Ảnh đã sẵn sàng' : 'Chưa có ảnh sau xử lý'}</strong>
+                <span>{afterUrl ? 'Bạn có thể tải kết quả về máy.' : 'Kết quả xuất ra sẽ dùng thiết lập bên trái.'}</span>
+              </div>
               <button className="button tertiary compact" type="button" disabled={!afterUrl} onClick={downloadResult}>
                 <Download size={16} />
                 Tải ảnh
               </button>
             </div>
-          </article>
-        </section>
+          </section>
+        </div>
       </main>
     </div>
+  )
+}
+
+function ControlGroup<T extends string>({
+  title,
+  note,
+  ariaLabel,
+  options,
+  value,
+  onChange,
+}: {
+  title: string
+  note: string
+  ariaLabel: string
+  options: Array<{ label: string; value: T }>
+  value: T
+  onChange: (value: T) => void
+}) {
+  return (
+    <div className="control-group">
+      <div className="control-head">
+        <span>{title}</span>
+        <small>{note}</small>
+      </div>
+      <div className="segmented" role="group" aria-label={ariaLabel}>
+        {options.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            className={value === option.value ? 'active' : ''}
+            onClick={() => onChange(option.value)}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ImageCard({
+  className = '',
+  label,
+  title,
+  badge,
+  children,
+}: {
+  className?: string
+  label: string
+  title: string
+  badge: ReactNode
+  children: ReactNode
+}) {
+  return (
+    <article className={`image-card ${className}`}>
+      <div className="card-heading">
+        <div>
+          <span className="kicker">{label}</span>
+          <h3>{title}</h3>
+        </div>
+        <span className={`file-pill ${className ? 'ready' : ''}`}>{badge}</span>
+      </div>
+      <div className="image-frame">{children}</div>
+    </article>
   )
 }
 

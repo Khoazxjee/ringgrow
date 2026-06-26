@@ -19,6 +19,7 @@
   --muted: #a8aab2;
   --success-bg: #e8ffea;
   --success-text: #1ba673;
+  --shadow-soft: rgba(0, 0, 0, 0.04) 0 1px 2px 0;
   font-family: 'DM Sans', Inter, Helvetica, Arial, sans-serif;
   color: var(--ink);
   background: var(--canvas);
