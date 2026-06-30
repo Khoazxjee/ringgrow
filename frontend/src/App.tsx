@@ -9,6 +9,7 @@ import {
   Settings2,
   ShieldCheck,
   Sparkles,
+  Upload,
   WandSparkles,
 } from 'lucide-react'
 import './App.css'
@@ -23,6 +24,22 @@ type EnhanceResult = {
   outputFormat?: string
 }
 
+type BatchResultItem = {
+  name: string
+  input: string
+  output?: string
+  status: 'done' | 'failed'
+  error?: string
+}
+
+type BatchResult = {
+  total: number
+  succeeded: number
+  failed: number
+  outputDir: string
+  items: BatchResultItem[]
+}
+
 type Quality = 'high' | 'medium' | 'auto'
 type Size = 'auto' | '1536x1024' | '1024x1024' | '1024x1536'
 type OutputFormat = 'png' | 'jpeg' | 'webp'
@@ -32,7 +49,7 @@ const GOLD_REFERENCE = '/examples/gold-reference.jpg'
 
 const qualityOptions: Array<{ label: string; value: Quality }> = [
   { label: 'Cao', value: 'high' },
-  { label: 'Vừa', value: 'medium' },
+  { label: 'Cân bằng', value: 'medium' },
   { label: 'Tự động', value: 'auto' },
 ]
 
@@ -49,9 +66,9 @@ const formatOptions: Array<{ label: string; value: OutputFormat }> = [
 ]
 
 const highlights = [
-  { icon: ShieldCheck, title: 'Giữ chi tiết', text: 'Hoạ tiết và đá không đổi' },
-  { icon: Gem, title: 'Vàng tự nhiên', text: 'Tông 18K cân bằng' },
-  { icon: Camera, title: 'Studio light', text: 'Sạch, nét, không giả' },
+  { icon: ShieldCheck, title: 'Giữ nguyên chi tiết', text: 'Hoa văn, đá và dáng nhẫn được bảo toàn' },
+  { icon: Gem, title: 'Đồng nhất màu vàng', text: 'Bám theo mẫu màu chuẩn' },
+  { icon: Camera, title: 'Ảnh sạch studio', text: 'Cạnh rõ, ánh sáng tự nhiên' },
 ]
 
 function App() {
@@ -67,6 +84,11 @@ function App() {
   const [error, setError] = useState('')
   const [downloadToast, setDownloadToast] = useState(false)
   const [result, setResult] = useState<EnhanceResult | null>(null)
+  const [batchSource, setBatchSource] = useState('')
+  const [batchOutputDir, setBatchOutputDir] = useState('')
+  const [isBatchRunning, setIsBatchRunning] = useState(false)
+  const [batchError, setBatchError] = useState('')
+  const [batchResult, setBatchResult] = useState<BatchResult | null>(null)
 
   useEffect(() => {
     return () => {
@@ -87,11 +109,14 @@ function App() {
 
   const selectedName = useMemo(() => file?.name ?? 'Chưa chọn ảnh', [file])
   const endpoint = `${API_BASE.replace(/\/$/, '')}/enhance`
+  const batchEndpoint = `${API_BASE.replace(/\/$/, '')}/batch`
   const canGenerate = !isLoading && Boolean(file && beforeUrl)
+  const canReset = Boolean(file || beforeUrl || afterUrl || result || error)
+  const canRunBatch = !isBatchRunning && Boolean(batchSource.trim() && batchOutputDir.trim())
 
   function chooseFile(nextFile: File) {
     if (!nextFile.type.startsWith('image/')) {
-      setError('File phải là ảnh JPG, PNG hoặc WEBP.')
+      setError('Vui lòng chọn ảnh JPG, PNG hoặc WEBP.')
       return
     }
 
@@ -121,7 +146,7 @@ function App() {
 
   async function enhanceImage() {
     if (!file) {
-      setError('Vui lòng upload file ảnh.')
+      setError('Vui lòng tải ảnh gốc lên trước khi chuyển đổi.')
       return
     }
 
@@ -143,14 +168,14 @@ function App() {
       const payload = await response.json()
 
       if (!response.ok) {
-        throw new Error(payload.error ?? 'Không xử lý được ảnh.')
+        throw new Error(payload.error ?? 'Chưa xử lý được ảnh. Vui lòng thử lại.')
       }
 
       setAfterUrl(payload.image)
       setResult(payload)
     } catch (caught) {
       setAfterUrl('')
-      setError(caught instanceof Error ? caught.message : 'Không xử lý được ảnh.')
+      setError(caught instanceof Error ? caught.message : 'Chưa xử lý được ảnh. Vui lòng thử lại.')
     } finally {
       setIsLoading(false)
     }
@@ -176,16 +201,51 @@ function App() {
     setDownloadToast(true)
   }
 
+  async function runBatch() {
+    if (!batchSource.trim() || !batchOutputDir.trim()) {
+      setBatchError('Vui lòng nhập nguồn ảnh và folder xuất kết quả.')
+      return
+    }
+
+    setIsBatchRunning(true)
+    setBatchError('')
+    setBatchResult(null)
+
+    try {
+      const response = await fetch(batchEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          source: batchSource.trim(),
+          outputDir: batchOutputDir.trim(),
+          quality,
+          size,
+        }),
+      })
+      const payload = await response.json()
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? 'Chưa xử lý được album. Vui lòng kiểm tra lại đường dẫn.')
+      }
+
+      setBatchResult(payload)
+    } catch (caught) {
+      setBatchError(caught instanceof Error ? caught.message : 'Chưa xử lý được album. Vui lòng thử lại.')
+    } finally {
+      setIsBatchRunning(false)
+    }
+  }
+
   return (
     <div className="app-shell">
       <header className="top-region">
-        <nav className="top-nav" aria-label="Primary">
+        <nav className="top-nav" aria-label="Điều hướng chính">
           <div className="brand">
             <span className="brand-mark" aria-hidden="true" />
             <span>RingGlow</span>
           </div>
-          <div className="nav-actions" aria-label="Pipeline status">
-            <span className="status-pill muted">Studio retouch</span>
+          <div className="nav-actions" aria-label="Trạng thái xử lý">
+            <span className="status-pill muted">Chuẩn màu studio</span>
             <span className="status-pill">gpt-image-2</span>
           </div>
         </nav>
@@ -194,11 +254,11 @@ function App() {
       <main className="studio-page">
         <section className="studio-hero" aria-labelledby="studio-title">
           <div>
-            <span className="eyebrow">Jewelry AI Studio</span>
-            <h1 id="studio-title">Làm màu vàng tự nhiên hơn, ảnh nhẫn vẫn sắc nét.</h1>
-            <p>Biến ảnh nhẫn đầu vào thành ảnh sản phẩm sáng sạch, đúng cảm giác chụp trong studio.</p>
+            <span className="eyebrow">Studio ảnh nhẫn AI</span>
+            <h1 id="studio-title">Chuẩn màu vàng studio, giữ trọn chi tiết nhẫn.</h1>
+            <p>Tải ảnh nhẫn gốc lên, RingGlow sẽ cân màu vàng tự nhiên hơn, làm sạch cạnh và giữ nguyên hoa văn, đá, bố cục.</p>
           </div>
-          <div className="highlight-row" aria-label="Edit guarantees">
+          <div className="highlight-row" aria-label="Điểm nổi bật">
             {highlights.map((item) => (
               <div className="highlight-item" key={item.title}>
                 <item.icon size={18} strokeWidth={1.8} />
@@ -212,69 +272,57 @@ function App() {
         </section>
 
         <div className="studio-grid">
-          <aside className="control-panel" aria-label="Image controls">
+          <aside className="control-panel" aria-label="Thiết lập ảnh">
             <div className="panel-title">
               <Settings2 size={18} strokeWidth={1.8} />
               <div>
-                <h2>Thiết lập</h2>
-                <p>Chọn cấu hình xuất cho ảnh sau xử lý.</p>
+                <h2>Thiết lập ảnh xuất</h2>
+                <p>Chọn chất lượng, khung ảnh và định dạng trước khi chuyển đổi.</p>
               </div>
-            </div>
-
-            <div className="reference-card">
-              <div>
-                <span>Tông mục tiêu</span>
-                <strong>Vàng studio sáng tự nhiên</strong>
-                <small>Champagne highlight, honey-gold midtone</small>
-              </div>
-              <img src={GOLD_REFERENCE} alt="Reference gold tone" />
             </div>
 
             <div className="settings-stack">
               <ControlGroup
                 title="Chất lượng"
-                note="Nên dùng Cao"
-                ariaLabel="Quality"
+                note="Cao cho ảnh bán hàng"
+                ariaLabel="Chất lượng ảnh"
                 options={qualityOptions}
                 value={quality}
                 onChange={setQuality}
               />
               <ControlGroup
                 title="Khung ảnh"
-                note="Auto cho ảnh upload"
-                ariaLabel="Size"
+                note="Tự động theo ảnh gốc"
+                ariaLabel="Khung ảnh"
                 options={sizeOptions}
                 value={size}
                 onChange={setSize}
               />
               <ControlGroup
                 title="Định dạng"
-                note="PNG giữ chi tiết tốt"
-                ariaLabel="Format"
+                note="PNG sắc nét nhất"
+                ariaLabel="Định dạng xuất"
                 options={formatOptions}
                 value={outputFormat}
                 onChange={setOutputFormat}
               />
             </div>
 
-            {error ? <div className="error-message">{error}</div> : null}
-
-            <div className="action-bar">
-              <button className="button primary" type="button" disabled={!canGenerate} onClick={enhanceImage}>
-                {isLoading ? <LoaderCircle className="spin" size={18} /> : <WandSparkles size={18} />}
-                {isLoading ? 'Đang xử lý' : 'Tạo ảnh vàng'}
-              </button>
-              <button className="button tertiary icon-only" type="button" onClick={resetImage} aria-label="Xóa ảnh">
-                <RotateCcw size={18} />
-              </button>
+            <div className="reference-card">
+              <div>
+                <span>Màu chuẩn</span>
+                <strong>Vàng studio tự nhiên</strong>
+                <small>Áp dụng đồng nhất cho mọi ảnh</small>
+              </div>
+              <img src={GOLD_REFERENCE} alt="Mẫu màu vàng studio" />
             </div>
           </aside>
 
-          <section className="preview-area" aria-label="Before and after">
+          <section className="preview-area" aria-label="So sánh ảnh gốc và kết quả">
             <div className="preview-heading">
               <div>
-                <span className="eyebrow">Preview</span>
-                <h2>So sánh trước và sau</h2>
+                <span className="eyebrow">Xem trước</span>
+                <h2>Ảnh gốc và kết quả</h2>
               </div>
               {beforeUrl ? (
                 <div className="result-meta">
@@ -294,10 +342,10 @@ function App() {
             />
 
             <div className="comparison">
-              <ImageCard label="Before" title="Ảnh gốc" badge={beforeUrl ? selectedName : 'Upload'}>
+              <ImageCard label="Gốc" title="Ảnh gốc" badge={beforeUrl ? selectedName : 'Chưa chọn'}>
                 {beforeUrl ? (
                   <>
-                    <img src={beforeUrl} alt="Original ring" />
+                    <img src={beforeUrl} alt="Ảnh nhẫn gốc" />
                     <button className="change-image-button" type="button" onClick={() => fileInputRef.current?.click()}>
                       Đổi ảnh
                     </button>
@@ -314,15 +362,18 @@ function App() {
                     onDragLeave={() => setIsDragging(false)}
                     onDrop={onDrop}
                   >
-                    Upload file ảnh
+                    <span className="image-upload-icon" aria-hidden="true">
+                      <Upload size={28} strokeWidth={1.8} />
+                    </span>
+                    <span>Tải ảnh gốc lên</span>
                   </button>
                 )}
               </ImageCard>
 
               <ImageCard
                 className="after-card"
-                label="After"
-                title="Studio gold"
+                label="Kết quả"
+                title="Vàng studio"
                 badge={
                   result ? (
                     <>
@@ -330,19 +381,19 @@ function App() {
                       {result.model}
                     </>
                   ) : (
-                    'Ready'
+                    'Chờ xử lý'
                   )
                 }
               >
                 {afterUrl ? (
-                  <img src={afterUrl} alt="Enhanced gold ring" />
+                  <img src={afterUrl} alt="Ảnh nhẫn sau khi chuẩn màu vàng" />
                 ) : (
                   <div className="empty-state">
                     <span className="empty-icon" aria-hidden="true">
                       {isLoading ? <LoaderCircle className="spin" size={32} /> : <Sparkles size={32} />}
                     </span>
-                    <strong>{isLoading ? 'Đang dựng ánh sáng studio' : 'Kết quả sẽ hiện ở đây'}</strong>
-                    <span>{isLoading ? 'Backend đang giữ nguyên chi tiết nhẫn.' : 'Bấm tạo ảnh để xem bản vàng tự nhiên hơn.'}</span>
+                    <strong>{isLoading ? 'Đang xử lý ảnh' : 'Kết quả sẽ hiện tại đây'}</strong>
+                    <span>{isLoading ? 'RingGlow đang cân màu và giữ nguyên chi tiết nhẫn.' : 'Bấm Chuyển đổi ảnh để tạo bản vàng studio.'}</span>
                   </div>
                 )}
               </ImageCard>
@@ -351,14 +402,105 @@ function App() {
             {beforeUrl ? (
                 <div className="download-strip">
                   <div>
-                    <strong>{afterUrl ? 'Ảnh đã sẵn sàng' : 'Chưa có ảnh sau xử lý'}</strong>
-                    <span>{afterUrl ? 'Bạn có thể tải kết quả về máy.' : 'Kết quả xuất ra sẽ dùng thiết lập bên trái.'}</span>
+                    <strong>{afterUrl ? 'Kết quả đã sẵn sàng' : 'Chưa có kết quả'}</strong>
+                    <span>{afterUrl ? 'Bạn có thể tải ảnh đã xử lý về máy.' : 'Kết quả sẽ dùng thiết lập hiện tại.'}</span>
                   </div>
                   <button className="button tertiary compact" type="button" disabled={!afterUrl} onClick={downloadResult}>
                     <Download size={16} />
-                    Tải ảnh
+                    Tải kết quả
                   </button>
                 </div>
+            ) : null}
+          </section>
+
+          {error ? <div className="error-message">{error}</div> : null}
+
+          <div className="conversion-footer">
+            <div>
+              <strong>{beforeUrl ? 'Sẵn sàng chuyển đổi' : 'Tải ảnh gốc lên để bắt đầu'}</strong>
+              <span>
+                {beforeUrl
+                  ? 'RingGlow sẽ cân màu vàng, làm sạch cạnh và giữ nguyên chi tiết nhẫn.'
+                  : 'Chọn ảnh nhẫn ở khung bên trên, sau đó bấm Chuyển đổi ảnh.'}
+              </span>
+            </div>
+            <div className="conversion-actions">
+              <button className="button primary convert-button" type="button" disabled={!canGenerate} onClick={enhanceImage}>
+                {isLoading ? <LoaderCircle className="spin" size={18} /> : <WandSparkles size={18} />}
+                {isLoading ? 'Đang chuyển đổi' : afterUrl ? 'Chuyển đổi lại' : 'Chuyển đổi ảnh'}
+              </button>
+              <button className="button tertiary icon-only" type="button" disabled={!canReset} onClick={resetImage} aria-label="Xóa ảnh">
+                <RotateCcw size={18} />
+              </button>
+            </div>
+          </div>
+
+          <section className="batch-panel" aria-labelledby="batch-title">
+            <div className="batch-heading">
+              <div>
+                <span className="eyebrow">Xử lý album</span>
+                <h2 id="batch-title">Chạy hàng loạt từ folder hoặc link Drive</h2>
+                <p>Lưu kết quả sang folder bạn chỉ định, giữ nguyên tên file và phần mở rộng của ảnh gốc.</p>
+              </div>
+            </div>
+
+            <div className="batch-form">
+              <label className="batch-field">
+                <span>Folder ảnh hoặc link Drive</span>
+                <input
+                  type="text"
+                  value={batchSource}
+                  onChange={(event) => setBatchSource(event.currentTarget.value)}
+                  placeholder="Ví dụ: C:\\Users\\Bạn\\Pictures\\nhan-goc hoặc link folder Drive công khai"
+                />
+                <small>Hỗ trợ folder local, link folder/file ảnh Drive công khai hoặc file ZIP chứa nhiều ảnh.</small>
+              </label>
+
+              <label className="batch-field">
+                <span>Folder xuất kết quả</span>
+                <input
+                  type="text"
+                  value={batchOutputDir}
+                  onChange={(event) => setBatchOutputDir(event.currentTarget.value)}
+                  placeholder="Ví dụ: C:\\Users\\Bạn\\Pictures\\nhan-da-xu-ly"
+                />
+                <small>Folder sẽ được tạo nếu chưa tồn tại.</small>
+              </label>
+            </div>
+
+            {batchError ? <div className="error-message">{batchError}</div> : null}
+
+            <div className="batch-footer">
+              <div>
+                <strong>{batchResult ? `Đã xử lý ${batchResult.succeeded}/${batchResult.total} ảnh` : 'Dùng thiết lập hiện tại cho cả album'}</strong>
+                <span>
+                  {batchResult
+                    ? `Kết quả được lưu tại ${batchResult.outputDir}.`
+                    : 'Mỗi ảnh sẽ được chuẩn màu vàng studio và xuất ra đúng tên, đúng định dạng gốc.'}
+                </span>
+              </div>
+              <button className="button primary batch-button" type="button" disabled={!canRunBatch} onClick={runBatch}>
+                {isBatchRunning ? <LoaderCircle className="spin" size={18} /> : <WandSparkles size={18} />}
+                {isBatchRunning ? 'Đang xử lý album' : 'Chạy album'}
+              </button>
+            </div>
+
+            {batchResult ? (
+              <div className="batch-result">
+                <div className="batch-summary">
+                  <span>Thành công: {batchResult.succeeded}</span>
+                  <span>Lỗi: {batchResult.failed}</span>
+                </div>
+                <div className="batch-list">
+                  {batchResult.items.slice(0, 8).map((item) => (
+                    <div className={`batch-row ${item.status}`} key={`${item.name}-${item.input}`}>
+                      <span>{item.name}</span>
+                      <small>{item.status === 'done' ? 'Đã lưu' : item.error}</small>
+                    </div>
+                  ))}
+                  {batchResult.items.length > 8 ? <small className="batch-more">Còn {batchResult.items.length - 8} ảnh khác trong kết quả.</small> : null}
+                </div>
+              </div>
             ) : null}
           </section>
         </div>
@@ -368,8 +510,8 @@ function App() {
         <div className="download-toast" role="status" aria-live="polite">
           <CheckCircle2 size={18} />
           <div>
-            <strong>Đã tải ảnh</strong>
-            <span>File kết quả đã được lưu về máy.</span>
+            <strong>Đã tải kết quả</strong>
+            <span>Ảnh đã được lưu về máy.</span>
           </div>
         </div>
       ) : null}
